@@ -3,7 +3,7 @@
 
 > Empowering a greener future through intelligent resource management and responsible practices.
 
-![sustainable-banner](https://user-images.githubusercontent.com/yourusername/sustainable-banner.jpg) <!-- Replace with your own banner image -->
+![sustainable-banner](download.jpeg) <!-- Replace with your own banner image -->
 
 ---
 
