@@ -1,120 +1,239 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Energy Optimizer Pro</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Water Monitoring System</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      color: #333;
+      line-height: 1.6;
+      background: linear-gradient(-45deg, #e8f5e9, #c8e6c9, #a5d6a7, #b2dfdb);
+      background-size: 400% 400%;
+      animation: greenFlow 15s ease infinite;
+    }
+
+    @keyframes greenFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    header {
+      position: relative;
+      height: 360px;
+      text-align: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      color: #fff;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=1500&q=80') no-repeat center bottom / cover;
+      z-index: -1;
+      animation: sway 6s ease-in-out infinite alternate;
+    }
+
+    @keyframes sway {
+      0% { background-position: center bottom; }
+      100% { background-position: center -10px; }
+    }
+
+    header h1,
+    header p {
+      background-color: rgba(0, 150, 136, 0.8);
+      padding: 15px 25px;
+      border-radius: 8px;
+      color: white;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    section {
+      padding: 40px 20px;
+      max-width: 1000px;
+      margin: 40px auto;
+      background-color: rgba(255, 255, 255, 0.92);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 1s ease;
+    }
+
+    section.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .features h2,
+    .benefits h2,
+    .testimonials h2,
+    .cta h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2rem;
+      color: #00796b;
+    }
+
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .card {
+      background: #d7f8f0;
+      padding: 20px;
+      border-radius: 12px;
+      position: relative;
+      flex: 1 1 250px;
+      max-width: 300px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .card h3 {
+      color: #00695c;
+      margin-bottom: 15px;
+    }
+
+    .card p {
+      color: #444;
+    }
+
+    .benefits ul {
+      list-style: none;
+      padding: 0;
+      font-size: 1.1rem;
+      line-height: 2;
+      text-align: center;
+    }
+
+    .benefits li {
+      margin-bottom: 10px;
+    }
+
+    .testimonials .card {
+      background-color: #f3e5f5;
+      border-left: 5px solid #ab47bc;
+    }
+
+    .cta {
+      text-align: center;
+      padding: 50px 20px;
+    }
+
+    .cta p {
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+      color: #004d40;
+    }
+
+    .cta button {
+      background-color: #00796b;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .cta button:hover {
+      background-color: #004d40;
+    }
+
+    footer {
+      background-color: rgba(200, 230, 201, 0.9);
+      text-align: center;
+      padding: 20px;
+      font-size: 0.9rem;
+      color: #2e7d32;
+      margin-top: 40px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1><i class="fas fa-bolt"></i> Energy Optimizer Pro</h1>
-            <div class="header-controls">
-                <button id="addDeviceBtn">Add Device</button>
-                <div class="theme-toggle">
-                    <i class="fas fa-moon"></i>
-                    <label class="switch">
-                        <input type="checkbox" id="themeToggle">
-                        <span class="slider round"></span>
-                    </label>
-                    <i class="fas fa-sun"></i>
-                </div>
-            </div>
-        </header>
+  <header>
+    <h1>Smart Monitoring System</h1>
+    <p>Detect leaks.Protect the planet.</p>
+  </header>
 
-        <div class="dashboard">
-            <div class="overview-cards">
-                <div class="card">
-                    <h3>Current Usage</h3>
-                    <div class="value" id="currentUsage">0.0 kW</div>
-                    <div class="subtext">Total Power Draw</div>
-                </div>
-                <div class="card">
-                    <h3>Daily Consumption</h3>
-                    <div class="value" id="dailyConsumption">0.0 kWh</div>
-                    <div class="subtext">Today's Total</div>
-                </div>
-                <div class="card">
-                    <h3>Cost Estimate</h3>
-                    <div class="value" id="costEstimate">$0.00</div>
-                    <div class="subtext">Today's Cost</div>
-                </div>
-                <div class="card alert">
-                    <h3>Alerts</h3>
-                    <div class="value" id="alertCount">0</div>
-                    <div class="subtext">Active Alerts</div>
-                </div>
-            </div>
-
-            <div class="main-content">
-                <div class="chart-container">
-                    <h2>Energy Consumption</h2>
-                    <canvas id="energyChart"></canvas>
-                </div>
-                
-                <div class="alerts-container">
-                    <h2>Alerts</h2>
-                    <div class="alerts-list" id="alertsList">
-                        <!-- Alerts will be populated by JavaScript -->
-                        <div class="no-alerts">No active alerts</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="devices-section">
-                <h2>Devices</h2>
-                <div class="devices-grid" id="devicesGrid">
-                    <!-- Devices will be populated by JavaScript -->
-                </div>
-            </div>
-        </div>
+  <section class="features">
+    <h2>How It Works</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>Real-Time Monitoring</h3>
+        <p>Track electricity consumption across all devices in your home using smart sensors.</p>
+      </div>
+      <div class="card">
+        <h3>Leak Detection</h3>
+        <p>Get instant alerts when abnormal usage is detected—preventing damage and waste.</p>
+      </div>
+      <div class="card">
+        <h3>Mobile App Control</h3>
+        <p>Use our mobile app to view reports, control water flow, and set usage goals.</p>
+      </div>
     </div>
+  </section>
 
-    <!-- Add Device Modal -->
-    <div id="deviceModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Add New Device</h2>
-            <form id="deviceForm">
-                <div class="form-group">
-                    <label for="deviceName">Device Name</label>
-                    <input type="text" id="deviceName" required>
-                </div>
-                <div class="form-group">
-                    <label for="deviceType">Device Type</label>
-                    <select id="deviceType" required>
-                        <option value="">Select a type</option>
-                        <option value="ac">Air Conditioner</option>
-                        <option value="fridge">Refrigerator</option>
-                        <option value="lighting">Lighting</option>
-                        <option value="computer">Computer</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="devicePower">Power Rating (Watts)</label>
-                    <input type="number" id="devicePower" required>
-                </div>
-                <div class="form-group">
-                    <label for="deviceEfficiency">Efficiency Rating</label>
-                    <select id="deviceEfficiency" required>
-                        <option value="A+++">A+++ (Most Efficient)</option>
-                        <option value="A++">A++</option>
-                        <option value="A+">A+</option>
-                        <option value="A">A</option>
-                        <option value="B">B</option>
-                        <option value="C">C (Least Efficient)</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn-primary">Add Device</button>
-            </form>
-        </div>
+  <section class="benefits">
+    <h2>Why Choose Smart Water Monitoring?</h2>
+    <ul>
+      <li>💧 Reduce water bills</li>
+      <li>🌱 Support sustainable living</li>
+      <li>🏠 Protect your home from leaks</li>
+      <li>📲 Stay informed with real-time alerts</li>
+    </ul>
+  </section>
+
+  <section class="testimonials">
+    <h2>What Users Are Saying</h2>
+    <div class="cards">
+      <div class="card">
+        <p>“This system saved me hundreds on my water bill! Totally worth it.”</p>
+        <strong>– Jiz Kayyala.</strong>
+      </div>
+      <div class="card">
+        <p>“The app is super easy to use and the leak alerts are life-savers.”</p>
+        <strong>– Jeswin Giss.</strong>
+      </div>
     </div>
+  </section>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="script.js"></script>
+  <section class="cta">
+    <h2>Start Saving Water Today</h2>
+    <p>Join thousands of smart homeowners protecting the planet one drop at a time.</p>
+    <button>Get Started</button>
+  </section>
+
+  <footer>
+    <p>&copy; FIVE FINGERS. All rights reserved.</p>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('section').forEach(section => {
+      observer.observe(section);
+    });
+  </script>
 </body>
 </html>
