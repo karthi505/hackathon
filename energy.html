@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EcoEmpower Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        --primary: #29a19c;
+        --background: #eaf6f6;
+        --card-bg: #fff;
+        --text: #222;
+        --accent: #fed6e3;
+        --secondary: #a8edea;
+        --alert: #e57373;
+        --focus: #226;
+      }
+      [data-theme="dark"] {
+        --primary: #57c7b6;
+        --background: #1a2226;
+        --card-bg: #232b2f;
+        --text: #eaf6f6;
+        --accent: #a8edea;
+        --secondary: #fed6e3;
+        --alert: #ff8a65;
+        --focus: #a8edea;
+      }
+      html,
+      body {
+        background: var(--background);
+        color: var(--text);
+        font-family: "Segoe UI", Arial, sans-serif;
+        margin: 0;
+        min-height: 100vh;
+        transition: background 0.5s;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2em 1em 1em 1em;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1em;
+        margin-bottom: 1.5em;
+      }
+      header h1 {
+        font-size: 2em;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+      }
+      .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 1.5em;
+      }
+      .header-controls button {
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        padding: 0.5em 1.2em;
+        border-radius: 6px;
+        font-size: 1em;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .header-controls button:hover {
+        background: #1a2226;
+        color: var(--secondary);
+      }
+      .theme-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.3em;
+        cursor: pointer;
+        padding: 0.2em 0.8em;
+        border-radius: 6px;
+        background: var(--card-bg);
+        box-shadow: 0 2px 8px rgba(41, 161, 156, 0.06);
+        transition: background 0.3s;
+      }
+      .theme-toggle .fa-moon,
+      .theme-toggle .fa-sun {
+        font-size: 1.3em;
+        transition: transform 0.4s;
+      }
+      .theme-toggle .fa-moon {
+        color: #888;
+      }
+      .theme-toggle .fa-sun {
+        color: #fbc02d;
+      }
+      [data-theme="dark"] .theme-toggle .fa-moon {
+        color: #fbc02d;
+        transform: rotate(-20deg) scale(1.2);
+      }
+      [data-theme="dark"] .theme-toggle .fa-sun {
+        color: #888;
+        transform: rotate(20deg) scale(0.9);
+      }
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 38px;
+        height: 22px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #ccc;
+        transition: 0.4s;
+        border-radius: 22px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 3px;
+        bottom: 3px;
+        background: #fff;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background: var(--primary);
+      }
+      input:checked + .slider:before {
+        transform: translateX(16px);
+      }
+      .taskbar {
+        display: flex;
+        gap: 1.2em;
+        background: var(--card-bg);
+        color: var(--primary);
+        border-radius: 8px;
+        padding: 0.5em 1em;
+        margin-bottom: 2em;
+        box-shadow: 0 2px 8px rgba(41, 161, 156, 0.06);
+      }
+      .taskbar a {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.2em 0.7em;
+        border-radius: 4px;
+        transition: background 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.4em;
+      }
+      .taskbar a.active,
+      .taskbar a:focus {
+        background: var(--primary);
+        color: #fff;
+        outline: none;
+      }
+      .dashboard {
+        margin-bottom: 2em;
+      }
+      .overview-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5em;
+        margin-bottom: 2em;
+        justify-content: center;
+      }
+      .card {
+        background: var(--card-bg);
+        border-radius: 18px;
+        box-shadow: 0 2px 8px rgba(41, 161, 156, 0.08);
+        flex: 1 1 220px;
+        min-width: 220px;
+        max-width: 270px;
+        padding: 1.5em 1.2em;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5em;
+        position: relative;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .card:hover {
+        transform: translateY(-7px) scale(1.035);
+        box-shadow: 0 6px 32px rgba(41, 161, 156, 0.16),
+          0 1.5px 3px rgba(41, 161, 156, 0.08);
+      }
+      .eco-score {
+        background: linear-gradient(
+          135deg,
+          var(--primary) 30%,
+          var(--accent) 100%
+        );
+        color: #fff;
+        border: none;
+        box-shadow: 0 2px 16px rgba(41, 161, 156, 0.13);
+      }
+      .card .value {
+        font-size: 2.2em;
+        font-weight: bold;
+        margin-bottom: 0.1em;
+      }
+      .card .subtext {
+        font-size: 1.05em;
+        color: var(--primary);
+        font-weight: 500;
+      }
+      .main-content {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2em;
+        margin-bottom: 2em;
+        justify-content: center;
+      }
+      .chart-container {
+        background: var(--card-bg);
+        border-radius: 18px;
+        box-shadow: 0 2px 8px rgba(41, 161, 156, 0.08);
+        padding: 1.5em 2em 2em 2em;
+        flex: 1 1 400px;
+        min-width: 340px;
+        max-width: 500px;
+        margin-bottom: 1.5em;
+      }
+      .chart-container h2 {
+        color: var(--primary);
+        font-size: 1.25em;
+        margin-bottom: 0.6em;
+        letter-spacing: 1px;
+      }
+      .chart-controls {
+        margin-bottom: 1em;
+        display: flex;
+        gap: 1em;
+      }
+      .chart-controls select {
+        padding: 0.3em 0.7em;
+        border-radius: 5px;
+        border: 1px solid #b2dfdb;
+        font-size: 1em;
+        background: var(--background);
+        color: var(--text);
+      }
+      /* Devices Grid & Modal */
+      .devices-section {
+        background: var(--card-bg);
+        border-radius: 10px;
+        padding: 1.2em 1.5em;
+        margin-bottom: 2em;
+        box-shadow: 0 2px 8px rgba(168, 237, 234, 0.11);
+      }
+      .devices-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.2em;
+        margin-top: 1em;
+      }
+      .device-card {
+        background: #f7fafc;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(168, 237, 234, 0.08);
+        padding: 1em;
+        min-width: 180px;
+        flex: 1 1 180px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5em;
+        position: relative;
+      }
+      .device-card .remove-device {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: transparent;
+        border: none;
+        color: var(--alert);
+        font-size: 1.1em;
+        cursor: pointer;
+        transition: color 0.2s;
+      }
+      .device-card .remove-device:focus {
+        outline: 2px solid var(--focus);
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 100;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.35);
+        justify-content: center;
+        align-items: center;
+      }
+      .modal[aria-hidden="false"] {
+        display: flex;
+      }
+      .modal-content {
+        background: var(--card-bg);
+        padding: 2em 1.5em;
+        border-radius: 12px;
+        min-width: 320px;
+        max-width: 95vw;
+        position: relative;
+      }
+      .modal-content .close {
+        position: absolute;
+        top: 10px;
+        right: 14px;
+        font-size: 1.5em;
+        color: #888;
+        cursor: pointer;
+      }
+      .form-group {
+        margin-bottom: 1em;
+      }
+      .form-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 0.3em;
+      }
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 0.5em;
+        border-radius: 5px;
+        border: 1px solid #b2dfdb;
+        font-size: 1em;
+      }
+      .btn-primary {
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        padding: 0.7em 1.5em;
+        border-radius: 6px;
+        font-size: 1em;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .btn-primary:focus {
+        outline: 2px solid var(--focus);
+      }
+      /* Feedback Form */
+      .feedback-form {
+        margin-top: 2em;
+        background: var(--card-bg);
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(41, 161, 156, 0.09);
+        padding: 1.2em 1.5em;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .feedback-form textarea {
+        width: 100%;
+        min-height: 60px;
+        border-radius: 6px;
+        border: 1px solid #b2dfdb;
+        padding: 0.7em;
+        font-size: 1em;
+        margin-bottom: 0.8em;
+        resize: vertical;
+      }
+      .feedback-form .feedback-success {
+        color: var(--primary);
+        font-weight: bold;
+        margin-bottom: 0.8em;
+      }
+      @media (max-width: 900px) {
+        .overview-cards,
+        .main-content,
+        .devices-grid {
+          flex-direction: column;
+          align-items: center;
+        }
+        .main-content > * {
+          min-width: unset;
+        }
+      }
+    </style>
+  </head>
+  <body data-theme="light">
+    <div class="container">
+      <header>
+        <h1><i class="fas fa-leaf"></i> EcoEmpower</h1>
+        <div class="header-controls">
+          <button id="addDeviceBtn" aria-label="Add Device">
+            <i class="fas fa-plus"></i> Add Device
+          </button>
+          <div
+            class="theme-toggle"
+            tabindex="0"
+            aria-label="Toggle dark mode"
+            role="button"
+          >
+            <i class="fas fa-moon"></i>
+            <label class="switch">
+              <input
+                type="checkbox"
+                id="themeToggle"
+                aria-checked="false"
+                aria-label="Toggle dark mode"
+              />
+              <span class="slider round"></span>
+            </label>
+            <i class="fas fa-sun"></i>
+          </div>
+        </div>
+      </header>
+      <nav class="taskbar" aria-label="Main navigation">
+        <a href="#dashboard" class="active" tabindex="0"
+          ><i class="fas fa-chart-line"></i> Dashboard</a
+        >
+        <a href="#devices" tabindex="0"><i class="fas fa-plug"></i> Devices</a>
+        <a href="#rooms" tabindex="0"><i class="fas fa-home"></i> Rooms</a>
+        <a href="#community" tabindex="0"
+          ><i class="fas fa-users"></i> Community</a
+        >
+        <a href="#settings" tabindex="0"><i class="fas fa-cog"></i> Settings</a>
+      </nav>
+      <main>
+        <!-- Overview Cards -->
+        <section class="dashboard" id="dashboard">
+          <div
+            class="overview-cards"
+            role="region"
+            aria-label="Resource Overview"
+          >
+            <div class="card" tabindex="0">
+              <h3>Energy Usage</h3>
+              <div class="value" id="energyUsage">0.0 kWh</div>
+              <div class="subtext">Today's Consumption</div>
+            </div>
+            <div class="card" tabindex="0" id="waterCard">
+              <h3>Water Usage</h3>
+              <div class="value" id="waterUsage">0.0 L</div>
+              <div class="subtext">Today's Consumption</div>
+            </div>
+            <div class="card" tabindex="0" id="wasteCard">
+              <h3>Waste Generated</h3>
+              <div class="value" id="wasteGenerated">0.0 kg</div>
+              <div class="subtext">This Week</div>
+            </div>
+            <div class="card eco-score" tabindex="0" id="ecoScoreCard">
+              <h3>Eco Score</h3>
+              <div class="value" id="ecoScore">85</div>
+              <div class="subtext">Your Sustainability Rating</div>
+            </div>
+          </div>
+          <div class="main-content">
+            <div
+              class="chart-container"
+              role="region"
+              aria-label="Energy Usage Graph"
+            >
+              <h2>Energy Consumption</h2>
+              <div class="chart-controls">
+                <select id="energyFilter" aria-label="Select time range">
+                  <option value="day">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                </select>
+              </div>
+              <canvas
+                id="energyChart"
+                tabindex="0"
+                aria-label="Energy usage graph"
+              ></canvas>
+            </div>
+            <div
+              class="chart-container"
+              role="region"
+              aria-label="Total Device Power Consumption"
+            >
+              <h2>Total Device Power Consumption</h2>
+              <canvas
+                id="devicePowerChart"
+                tabindex="0"
+                aria-label="Total device power consumption graph"
+              ></canvas>
+            </div>
+          </div>
+        </section>
+        <!-- Devices Section -->
+        <section
+          class="devices-section"
+          id="devices"
+          aria-label="Device Management"
+        >
+          <h2>Devices</h2>
+          <div class="devices-grid" id="devicesGrid"></div>
+        </section>
+        <!-- Community & Leaderboard Section -->
+        <section class="community-section" id="community">
+          <h2>Community Leaderboard</h2>
+          <ol>
+            <li><strong>Jiz Kayyala</strong> – 95 Eco Points</li>
+            <li><strong>Jeswin Giss</strong> – 92 Eco Points</li>
+            <li><strong>You</strong> – 85 Eco Points</li>
+          </ol>
+        </section>
+        <!-- Feedback Form -->
+        <section class="feedback-form" id="feedbackFormSection">
+          <h2>Share Your Feedback</h2>
+          <div
+            id="feedbackSuccess"
+            class="feedback-success"
+            style="display: none"
+          ></div>
+          <textarea
+            id="feedbackInput"
+            aria-label="Feedback"
+            placeholder="Share your sustainability ideas or feedback..."
+          ></textarea>
+          <button
+            class="btn-primary"
+            id="feedbackBtn"
+            aria-label="Submit Feedback"
+          >
+            Submit Feedback
+          </button>
+        </section>
+      </main>
+    </div>
+    <!-- Add Device Modal -->
+    <div
+      id="deviceModal"
+      class="modal"
+      aria-hidden="true"
+      aria-modal="true"
+      role="dialog"
+    >
+      <div class="modal-content">
+        <span class="close" tabindex="0" aria-label="Close Modal">&times;</span>
+        <h2>Add New Device</h2>
+        <form id="deviceForm">
+          <div class="form-group">
+            <label for="deviceName">Device Name</label>
+            <input type="text" id="deviceName" required aria-required="true" />
+          </div>
+          <div class="form-group">
+            <label for="deviceType">Device Type</label>
+            <select id="deviceType" required aria-required="true">
+              <option value="">Select a type</option>
+              <option value="ac">Air Conditioner</option>
+              <option value="fridge">Refrigerator</option>
+              <option value="lighting">Lighting</option>
+              <option value="computer">Computer</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="devicePower">Power Rating (Watts)</label>
+            <input
+              type="number"
+              id="devicePower"
+              required
+              aria-required="true"
+            />
+          </div>
+          <div class="form-group">
+            <label for="deviceEfficiency">Efficiency Rating</label>
+            <select id="deviceEfficiency" required aria-required="true">
+              <option value="A+++">A+++ (Most Efficient)</option>
+              <option value="A++">A++</option>
+              <option value="A+">A+</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C (Least Efficient)</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary">Add Device</button>
+        </form>
+      </div>
+    </div>
+    <script>
+      // Theme toggle
+      const themeToggle = document.getElementById("themeToggle");
+      const body = document.body;
+      const THEME_KEY = "ecoempower_theme";
+      function setTheme(theme) {
+        body.setAttribute("data-theme", theme);
+        themeToggle.checked = theme === "dark";
+        themeToggle.setAttribute("aria-checked", theme === "dark");
+        localStorage.setItem(THEME_KEY, theme);
+      }
+      setTheme(localStorage.getItem(THEME_KEY) || "light");
+      themeToggle.addEventListener("change", () => {
+        setTheme(themeToggle.checked ? "dark" : "light");
+      });
+      document
+        .querySelector(".theme-toggle")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            themeToggle.checked = !themeToggle.checked;
+            setTheme(themeToggle.checked ? "dark" : "light");
+          }
+        });
+
+      // Chart.js demo data
+      const chartCtx = document.getElementById("energyChart").getContext("2d");
+      let labels = {
+        day: ["6am", "9am", "12pm", "3pm", "6pm", "9pm", "12am"],
+        week: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        month: Array.from({ length: 30 }, (_, i) => `Day ${i + 1}`),
+      };
+      let energyData = {
+        day: [1.2, 1.5, 1.3, 1.8, 1.6, 1.4, 1.7],
+        week: [8, 7, 6, 9, 10, 8, 7],
+        month: Array.from({ length: 30 }, () => Math.random() * 2 + 1),
+      };
+      let currentFilter = "day";
+      const filterSelect = document.getElementById("energyFilter");
+      filterSelect.value = currentFilter;
+      let energyChart = new Chart(chartCtx, {
+        type: "line",
+        data: {
+          labels: labels[currentFilter],
+          datasets: [
+            {
+              label: "Energy Usage (kWh)",
+              data: energyData[currentFilter],
+              borderColor: "#29a19c",
+              backgroundColor: "rgba(41,161,156,0.1)",
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            y: { beginAtZero: true },
+          },
+        },
+      });
+      filterSelect.addEventListener("change", (e) => {
+        currentFilter = filterSelect.value;
+        energyChart.data.labels = labels[currentFilter];
+        energyChart.data.datasets[0].data = energyData[currentFilter];
+        energyChart.update();
+      });
+
+      // Device management logic
+      const DEVICES_KEY = "ecoempower_devices";
+      let devices = JSON.parse(localStorage.getItem(DEVICES_KEY)) || [
+        {
+          name: "Living Room AC",
+          type: "ac",
+          power: 1200,
+          efficiency: "A+",
+          id: Date.now(),
+        },
+        {
+          name: "Fridge",
+          type: "fridge",
+          power: 200,
+          efficiency: "A++",
+          id: Date.now() + 1,
+        },
+      ];
+      const devicesGrid = document.getElementById("devicesGrid");
+      function renderDevices() {
+        devicesGrid.innerHTML = "";
+        if (devices.length === 0) {
+          devicesGrid.innerHTML = "<div>No devices added.</div>";
+          updateDevicePowerChart();
+          updateOverviewCards();
+          return;
+        }
+        devices.forEach((dev) => {
+          const card = document.createElement("div");
+          card.className = "device-card";
+          card.setAttribute("tabindex", "0");
+          card.setAttribute(
+            "aria-label",
+            `${dev.name}, ${dev.type}, ${dev.power}W, Efficiency ${dev.efficiency}`
+          );
+          card.innerHTML = `
+          <button class="remove-device" aria-label="Remove device" tabindex="0" data-id="${dev.id}">
+            <i class="fas fa-times"></i>
+          </button>
+          <strong>${dev.name}</strong>
+          <div>Type: ${dev.type}</div>
+          <div>Power: ${dev.power} W</div>
+          <div>Efficiency: ${dev.efficiency}</div>
+        `;
+          devicesGrid.appendChild(card);
+        });
+        devicesGrid.querySelectorAll(".remove-device").forEach((btn) => {
+          btn.onclick = () => {
+            const id = parseInt(btn.getAttribute("data-id"));
+            devices = devices.filter((d) => d.id !== id);
+            localStorage.setItem(DEVICES_KEY, JSON.stringify(devices));
+            renderDevices();
+          };
+          btn.onkeydown = (e) => {
+            if (e.key === "Enter" || e.key === " ") btn.click();
+          };
+        });
+        updateDevicePowerChart();
+        updateOverviewCards();
+      }
+
+      // Device Power Chart
+      const devicePowerCtx = document
+        .getElementById("devicePowerChart")
+        .getContext("2d");
+      let devicePowerChart = new Chart(devicePowerCtx, {
+        type: "bar",
+        data: {
+          labels: devices.map((d) => d.name),
+          datasets: [
+            {
+              label: "Power (Watts)",
+              data: devices.map((d) => d.power),
+              backgroundColor: "#29a19c",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            y: { beginAtZero: true },
+          },
+        },
+      });
+      function updateDevicePowerChart() {
+        devicePowerChart.data.labels = devices.map((d) => d.name);
+        devicePowerChart.data.datasets[0].data = devices.map((d) => d.power);
+        devicePowerChart.update();
+      }
+
+      function updateOverviewCards() {
+        // Energy Usage: sum of all device power (W) as kWh for demo
+        const totalPower = devices.reduce((sum, d) => sum + d.power, 0);
+        document.getElementById("energyUsage").textContent =
+          (totalPower / 1000).toFixed(2) + " kWh";
+        // Water Usage: demo value
+        document.getElementById("waterUsage").textContent =
+          220 + Math.floor(Math.random() * 100) + " L";
+        // Waste Generated: demo value
+        document.getElementById("wasteGenerated").textContent =
+          (1 + Math.random()).toFixed(2) + " kg";
+      }
+
+      renderDevices();
+
+      // Add Device Modal logic
+      const deviceModal = document.getElementById("deviceModal");
+      const addDeviceBtn = document.getElementById("addDeviceBtn");
+      const closeModalBtn = deviceModal.querySelector(".close");
+      addDeviceBtn.onclick = () => {
+        deviceModal.style.display = "flex";
+        deviceModal.setAttribute("aria-hidden", "false");
+        deviceModal.querySelector("#deviceName").focus();
+      };
+      closeModalBtn.onclick = () => {
+        deviceModal.style.display = "none";
+        deviceModal.setAttribute("aria-hidden", "true");
+      };
+      closeModalBtn.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") closeModalBtn.click();
+      };
+      window.onclick = (e) => {
+        if (e.target === deviceModal) closeModalBtn.click();
+      };
+      deviceModal.addEventListener("keydown", function (e) {
+        if (e.key === "Tab") {
+          const focusables = deviceModal.querySelectorAll(
+            "input,select,button,.close"
+          );
+          const first = focusables[0],
+            last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+          if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+        if (e.key === "Escape") closeModalBtn.click();
+      });
+      document.getElementById("deviceForm").onsubmit = function (e) {
+        e.preventDefault();
+        const name = document.getElementById("deviceName").value.trim();
+        const type = document.getElementById("deviceType").value;
+        const power = parseInt(document.getElementById("devicePower").value);
+        const efficiency = document.getElementById("deviceEfficiency").value;
+        if (name && type && power && efficiency) {
+          devices.push({ name, type, power, efficiency, id: Date.now() });
+          localStorage.setItem(DEVICES_KEY, JSON.stringify(devices));
+          renderDevices();
+          deviceModal.style.display = "none";
+          deviceModal.setAttribute("aria-hidden", "true");
+          this.reset();
+        }
+      };
+
+      // Feedback logic
+      document.getElementById("feedbackBtn").onclick = function () {
+        const textarea = document.getElementById("feedbackInput");
+        const feedbackSuccess = document.getElementById("feedbackSuccess");
+        if (textarea.value.trim()) {
+          feedbackSuccess.textContent = "Thank you for your feedback!";
+          feedbackSuccess.style.display = "";
+          textarea.value = "";
+          setTimeout(() => {
+            feedbackSuccess.style.display = "none";
+          }, 3000);
+        } else {
+          feedbackSuccess.textContent = "Please enter your feedback.";
+          feedbackSuccess.style.display = "";
+          setTimeout(() => {
+            feedbackSuccess.style.display = "none";
+          }, 2000);
+          textarea.focus();
+        }
+      };
+    </script>
+  </body>
+</html>
