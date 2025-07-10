@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Optimizer Pro</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-bolt"></i> Energy Optimizer Pro</h1>
+            <div class="header-controls">
+                <button id="addDeviceBtn">Add Device</button>
+                <div class="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                    <label class="switch">
+                        <input type="checkbox" id="themeToggle">
+                        <span class="slider round"></span>
+                    </label>
+                    <i class="fas fa-sun"></i>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard">
+            <div class="overview-cards">
+                <div class="card">
+                    <h3>Current Usage</h3>
+                    <div class="value" id="currentUsage">0.0 kW</div>
+                    <div class="subtext">Total Power Draw</div>
+                </div>
+                <div class="card">
+                    <h3>Daily Consumption</h3>
+                    <div class="value" id="dailyConsumption">0.0 kWh</div>
+                    <div class="subtext">Today's Total</div>
+                </div>
+                <div class="card">
+                    <h3>Cost Estimate</h3>
+                    <div class="value" id="costEstimate">$0.00</div>
+                    <div class="subtext">Today's Cost</div>
+                </div>
+                <div class="card alert">
+                    <h3>Alerts</h3>
+                    <div class="value" id="alertCount">0</div>
+                    <div class="subtext">Active Alerts</div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="chart-container">
+                    <h2>Energy Consumption</h2>
+                    <canvas id="energyChart"></canvas>
+                </div>
+                
+                <div class="alerts-container">
+                    <h2>Alerts</h2>
+                    <div class="alerts-list" id="alertsList">
+                        <!-- Alerts will be populated by JavaScript -->
+                        <div class="no-alerts">No active alerts</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="devices-section">
+                <h2>Devices</h2>
+                <div class="devices-grid" id="devicesGrid">
+                    <!-- Devices will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Device Modal -->
+    <div id="deviceModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Device</h2>
+            <form id="deviceForm">
+                <div class="form-group">
+                    <label for="deviceName">Device Name</label>
+                    <input type="text" id="deviceName" required>
+                </div>
+                <div class="form-group">
+                    <label for="deviceType">Device Type</label>
+                    <select id="deviceType" required>
+                        <option value="">Select a type</option>
+                        <option value="ac">Air Conditioner</option>
+                        <option value="fridge">Refrigerator</option>
+                        <option value="lighting">Lighting</option>
+                        <option value="computer">Computer</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="devicePower">Power Rating (Watts)</label>
+                    <input type="number" id="devicePower" required>
+                </div>
+                <div class="form-group">
+                    <label for="deviceEfficiency">Efficiency Rating</label>
+                    <select id="deviceEfficiency" required>
+                        <option value="A+++">A+++ (Most Efficient)</option>
+                        <option value="A++">A++</option>
+                        <option value="A+">A+</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C (Least Efficient)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Add Device</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
