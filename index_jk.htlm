@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Water Monitoring System</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Smart Water Monitoring System</h1>
+    <p>Detect leaks. Save water. Protect the planet.</p>
+  </header>
+
+  <section class="features">
+    <h2>How It Works</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>Real-Time Monitoring</h3>
+        <p>Track water usage across all devices in your home using smart sensors.</p>
+      </div>
+      <div class="card">
+        <h3>Leak Detection</h3>
+        <p>Get instant alerts when abnormal usage is detected—preventing damage and waste.</p>
+      </div>
+      <div class="card">
+        <h3>Mobile App Control</h3>
+        <p>Use our mobile app to view reports, control water flow, and set usage goals.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="benefits">
+    <h2>Why Choose Smart Water Monitoring?</h2>
+    <ul>
+      <li>💧 Reduce water bills</li>
+      <li>🌱 Support sustainable living</li>
+      <li>🏠 Protect your home from leaks</li>
+      <li>📲 Stay informed with real-time alerts</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>&copy; FIVE FINGERS . All rights reserved.</p>
+  </footer>
+  <script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, {
+    threshold: 0.1
+  });
+
+  document.querySelectorAll('section').forEach(section => {
+    observer.observe(section);
+  });
+</script>
+
+  
+</body>
+</html>
