@@ -5,10 +5,13 @@ from datetime import datetime, timedelta
 import json
 import os
 import random
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 import time
 
 app = Flask(__name__, static_folder='.', static_url_path='')
+
+# Thread lock for thread-safe operations
+device_lock = Lock()
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 CORS(app)
 # Using 'threading' as the async mode for better compatibility
@@ -58,17 +61,35 @@ def add_device():
     if not request.json or 'name' not in request.json:
         return jsonify({"error": "Device name is required"}), 400
     
+    # Get the next available ID
+    with device_lock:
+        used_ids = {d['id'] for d in devices}
+        next_id = 1
+        while next_id in used_ids:
+            next_id += 1
+    
+    # Create the new device with all required fields
     new_device = {
-        'id': max(d['id'] for d in devices) + 1 if devices else 1,
+        'id': next_id,
         'name': request.json['name'],
         'type': request.json.get('type', 'other'),
-        'power': request.json.get('power', 100),
+        'power': int(request.json.get('power', 100)),
         'efficiency': request.json.get('efficiency', 'B'),
         'isOn': request.json.get('isOn', False),
-        'usage': 0
+        'current_power': 0,
+        'usage': 0,
+        'status': 'offline',
+        'last_updated': datetime.utcnow().isoformat() + 'Z'
     }
     
-    devices.append(new_device)
+    with device_lock:
+        devices.append(new_device)
+    
+    print(f"Added new device: {new_device}")
+    
+    # Emit WebSocket event to all clients
+    socketio.emit('device_added', new_device, namespace='/')
+    
     return jsonify(new_device), 201
 
 @app.route('/api/devices/<int:device_id>', methods=['PUT'])
@@ -92,7 +113,8 @@ def delete_device(device_id):
         return jsonify({"status": "error", "message": "Device not found"}), 404
     
     # Remove the device
-    devices = [d for d in devices if d['id'] != device_id]
+    with device_lock:
+        devices = [d for d in devices if d['id'] != device_id]
     
     # Emit WebSocket event to all clients
     socketio.emit('device_removed', {'device_id': device_id}, namespace='/')

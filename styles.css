@@ -328,17 +328,9 @@ h2 {
 /* ON state (danger/red) */
 .device-actions button.toggle-device.btn-danger {
     background-color: var(--danger-color);
-    padding-right: 30px;
 }
 
-/* Add checkmark for ON state */
-.device-actions button.toggle-device.btn-danger::after {
-    content: "✓";
-    position: absolute;
-    right: 10px;
-    font-size: 0.9em;
-    opacity: 0.9;
-}
+/* No checkmark for ON state */
 
 /* Hover states */
 .device-actions button.toggle-device:not(.btn-danger):hover {

@@ -23,12 +23,22 @@ let devices = [
 ];
 
 let alerts = [];
+let lastUpdateTime = Date.now();
+let lastSaveTime = Date.now();
 
 // Energy cost per kWh (in USD)
 const energyCost = 0.14;
 
 // Socket.IO connection
-const socket = io('http://' + window.location.hostname + ':5000');
+const socketUrl = 'http://' + window.location.hostname + ':5000';
+console.log('Connecting to WebSocket server at:', socketUrl);
+const socket = io(socketUrl, {
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 20000
+});
 
 // Initialize the application
 function init() {
@@ -90,57 +100,75 @@ function setupEventListeners() {
 
 // Initialize the energy consumption chart
 function initChart() {
-    const ctx = document.getElementById('energyChart').getContext('2d');
+    const canvas = document.getElementById('energyChart');
+    if (!canvas) {
+        console.error('Canvas element not found');
+        return;
+    }
     
-    energyChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: Array(24).fill().map((_, i) => `${i}:00`),
-            datasets: [{
-                label: 'Energy Consumption (kWh)',
-                data: Array(24).fill(0),
-                borderColor: 'rgba(74, 111, 165, 1)',
-                backgroundColor: 'rgba(74, 111, 165, 0.2)',
-                borderWidth: 2,
-                tension: 0.3,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'kWh'
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+        console.error('Could not get 2D context');
+        return;
+    }
+    
+    console.log('Initializing chart...');
+    
+    try {
+        energyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(24).fill().map((_, i) => `${i}:00`),
+                datasets: [{
+                    label: 'Energy Consumption (kWh)',
+                    data: Array(24).fill(0),
+                    borderColor: 'rgba(74, 111, 165, 1)',
+                    backgroundColor: 'rgba(74, 111, 165, 0.2)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'kWh'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
                     },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.1)'
+                    x: {
+                        grid: {
+                            display: false
+                        }
                     }
                 },
-                x: {
-                    grid: {
-                        display: false
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
                     }
-                }
-            },
-            plugins: {
-                legend: {
-                    position: 'top',
                 },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
                 }
-            },
-            animation: {
-                duration: 1000,
-                easing: 'easeInOutQuart'
             }
-        }
-    });
+        });
+        
+        console.log('Chart initialized successfully');
+    } catch (error) {
+        console.error('Error initializing chart:', error);
+    }
 }
 
 // Render devices in the grid
@@ -269,11 +297,6 @@ function handleDeviceToggled(data) {
     if (toggleBtn) {
         console.log('Toggle button found, current classes:', toggleBtn.className);
         
-        // Ensure we have the base classes
-        if (!toggleBtn.classList.contains('btn')) {
-            toggleBtn.classList.add('btn', 'btn-sm');
-        }
-        
         // Update button text and classes based on the new state
         if (device.isOn) {
             console.log('Setting button to ON state (red)');
@@ -286,20 +309,61 @@ function handleDeviceToggled(data) {
             toggleBtn.classList.remove('btn-danger');
             toggleBtn.classList.add('btn-primary');
         }
-        
+
         console.log('Button classes after update:', toggleBtn.className);
-        
+
         // Force a reflow to ensure the transition happens
         void toggleBtn.offsetWidth;
     }
-    
+
+    // If the device was just turned on or off, update the UI accordingly
+    if (wasOn !== device.isOn) {
+        // Find the device card in the DOM
+        const deviceCard = document.querySelector(`.device-card[data-device-id="${device.id}"]`);
+        if (deviceCard) {
+            if (device.isOn) {
+                deviceCard.classList.add('active');
+            } else {
+                deviceCard.classList.remove('active');
+            }
+        }
+
+        // Update the power display
+        const powerEl = document.getElementById(`device-${device.id}-power`);
+        if (powerEl) {
+            powerEl.textContent = device.isOn ? 
+                `${(device.power / 1000).toFixed(2)} kW` : 
+                '0.00 kW';
+        }
+    }
+
     // Add alert when turning on high-power devices
     if (device.isOn && device.power > 1000) {
         addAlert(`High-power device turned on: ${device.name} (${device.power}W)`, 'warning');
     }
     
-    // Update the dashboard
+    // Update the dashboard and chart
     updateDashboard();
+    
+    // Calculate current total power usage
+    const currentUsage = devices
+        .filter(d => d.isOn)
+        .reduce((sum, d) => sum + (d.current_power || 0), 0) / 1000; // Convert to kW
+    
+    // Update the chart with current usage
+    if (energyChart) {
+        const now = new Date();
+        const currentHour = now.getHours();
+        
+        // Update the current hour's data point
+        energyChart.data.datasets[0].data[currentHour] = currentUsage;
+        
+        // Update the chart
+        energyChart.update({
+            duration: 800,
+            easing: 'easeInOutQuart'
+        });
+    }
 }
 
 // Remove a device
@@ -317,8 +381,13 @@ async function removeDevice(e) {
         try {
             // Send remove request to server
             const response = await fetch(`/api/devices/${deviceId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
+            
+            const result = await response.json();
             
             if (response.ok) {
                 // Remove device from local state
@@ -329,8 +398,7 @@ async function removeDevice(e) {
                 // Update dashboard to reflect changes
                 updateDashboard();
             } else {
-                const error = await response.json();
-                throw new Error(error.message || 'Failed to remove device');
+                throw new Error(result.message || 'Failed to remove device');
             }
         } catch (error) {
             console.error('Error removing device:', error);
@@ -391,31 +459,42 @@ function handleAddDevice(e) {
     const power = parseInt(document.getElementById('devicePower').value);
     const efficiency = document.getElementById('deviceEfficiency').value;
     
-    const newDevice = {
-        id: devices.length > 0 ? Math.max(...devices.map(d => d.id)) + 1 : 1,
+    // Create device data object
+    const deviceData = {
         name,
         type,
         power,
         efficiency,
-        isOn: false,
-        current_power: 0,
-        usage: 0,
-        efficiency: 'A+',
-        status: 'offline',
-        last_updated: new Date().toISOString()
+        isOn: false
     };
     
-    devices.push(newDevice);
-    
-    // Reset form
-    deviceForm.reset();
-    deviceModal.style.display = 'none';
-    
-    // Update UI
-    renderDevices();
-    
-    // Add alert
-    addAlert(`New device added: ${name}`, 'info');
+    // Send the new device to the server
+    fetch('/api/devices', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(deviceData)
+    })
+    .then(response => response.json())
+    .then(newDevice => {
+        // The server will assign the ID
+        devices.push(newDevice);
+        
+        // Reset form and close modal
+        deviceForm.reset();
+        deviceModal.style.display = 'none';
+        
+        // Update UI
+        renderDevices();
+        
+        // Add alert
+        addAlert(`New device added: ${name}`, 'success');
+    })
+    .catch(error => {
+        console.error('Error adding device:', error);
+        addAlert('Failed to add device. Please try again.', 'error');
+    });
 }
 
 // Set up WebSocket event listeners
@@ -439,24 +518,51 @@ function setupSocketListeners() {
     
     // Handle energy updates from server
     socket.on('energy_update', (data) => {
+        console.log('Received energy update:', data);
+        
         // Update devices with new data
-        data.devices.forEach(deviceData => {
-            const device = devices.find(d => d.id === deviceData.id);
-            if (device) {
-                device.current_power = deviceData.current_power;
-                device.usage = deviceData.usage;
-                device.isOn = deviceData.isOn;
-            }
-        });
+        if (data.devices && Array.isArray(data.devices)) {
+            data.devices.forEach(deviceData => {
+                const device = devices.find(d => d.id === deviceData.id);
+                if (device) {
+                    device.current_power = deviceData.current_power || 0;
+                    device.usage = deviceData.usage || 0;
+                    device.isOn = deviceData.isOn || false;
+                }
+            });
+        }
         
         // Update dashboard with new data
-        updateDashboardWithData(data);
+        updateDashboard(data);
         
-        // Update chart with new data point
-        updateChartWithData(data);
+        // Update chart with current data point
+        const now = new Date();
+        const currentHour = now.getHours();
+        updateChartWithData({
+            timestamp: now,
+            current_hour: currentHour,
+            current_power: data.current_power || 0,
+            consumption: data.daily_consumption || 0
+        });
     });
     
-    // Handle device toggle responses
+    // Handle device added event
+    socket.on('device_added', (newDevice) => {
+        console.log('New device added:', newDevice);
+        // Check if device already exists
+        const existingIndex = devices.findIndex(d => d.id === newDevice.id);
+        if (existingIndex >= 0) {
+            // Update existing device
+            devices[existingIndex] = newDevice;
+        } else {
+            // Add new device
+            devices.push(newDevice);
+        }
+        renderDevices();
+        addAlert(`New device added: ${newDevice.name}`, 'success');
+    });
+    
+    // Handle device toggled event
     socket.on('device_toggled', handleDeviceToggled);
     
     // Handle device removed event
@@ -466,24 +572,47 @@ function setupSocketListeners() {
         
         if (device) {
             devices = devices.filter(d => d.id !== deviceId);
+            renderDevices();
+            updateDashboard();
             addAlert(`Device removed: ${device.name}`, 'info');
+        }
+    });
+    
+    // Handle initial data
+    socket.on('initial_data', (data) => {
+        if (data.devices) {
+            devices = data.devices;
             renderDevices();
             updateDashboard();
         }
+        
+        if (data.historical) {
+            updateChartWithData(data.historical);
+        }
+    });
+    
+    // Handle errors
+    socket.on('error', (error) => {
+        console.error('WebSocket error:', error);
+        addAlert(`Connection error: ${error.message}`, 'danger');
     });
 }
 
 // Update energy usage for all devices
 function updateEnergyUsage() {
-    const now = new Date();
-    const hour = now.getHours();
+    const now = Date.now();
+    const timeDiffHours = (now - lastUpdateTime) / (1000 * 60 * 60); // Convert ms to hours
+    lastUpdateTime = now;
+    const hour = new Date().getHours();
     
     // Update usage for each device
+    let usageUpdated = false;
     devices.forEach(device => {
         if (device.isOn) {
-            // Add a small random variation to simulate real usage
-            const usageIncrement = (device.power / 1000) * (5 / 3600) * (0.9 + Math.random() * 0.2);
+            // Calculate usage based on actual time passed and device power
+            const usageIncrement = (device.power / 1000) * timeDiffHours;
             device.usage += usageIncrement;
+            usageUpdated = true;
             
             // Update device usage display
             const usageEl = document.getElementById(`device-${device.id}-usage`);
@@ -493,31 +622,76 @@ function updateEnergyUsage() {
         }
     });
     
-    // Update chart with current hour's data
-    updateChart(hour);
+    // Only update chart and dashboard if usage was actually updated
+    if (usageUpdated) {
+        // Update chart with current hour's data
+        updateChart(hour);
+        
+        // Update dashboard with latest values
+        updateDashboard();
+    }
     
-    // Check for alerts
+    // Always check for alerts
     checkForAlerts();
 }
 
 // Update the chart with new data
 function updateChartWithData(data) {
-    const now = new Date();
-    const currentHour = now.getHours();
+    if (!energyChart) {
+        console.error('Chart not initialized');
+        return;
+    }
     
-    // Get the chart data
-    const chartData = energyChart.data.datasets[0].data;
+    console.log('Updating chart with data:', data);
     
-    // Update the current hour's data
-    chartData[currentHour] = data.current_power;
-    
-    // Update the chart
-    energyChart.update();
+    try {
+        // Get the current hour
+        const now = data.timestamp ? new Date(data.timestamp) : new Date();
+        const currentHour = data.current_hour !== undefined ? data.current_hour : now.getHours();
+        
+        // Get the chart's data array
+        const chartData = energyChart.data.datasets[0].data;
+        
+        // Update the current hour's data
+        if (data.current_power !== undefined) {
+            chartData[currentHour] = data.current_power;
+            
+            // Smooth out the line by filling in any gaps
+            for (let i = 0; i < chartData.length; i++) {
+                if (chartData[i] === undefined || chartData[i] === null) {
+                    chartData[i] = 0;
+                }
+            }
+        }
+        
+        // If we have consumption data, update the entire dataset
+        if (data.consumption !== undefined) {
+            // Make sure we have an array of 24 hours
+            if (!Array.isArray(chartData) || chartData.length !== 24) {
+                energyChart.data.datasets[0].data = Array(24).fill(0);
+            }
+            
+            // Update the current hour
+            energyChart.data.datasets[0].data[currentHour] = data.consumption;
+        }
+        
+        // Update the chart with animation
+        energyChart.update({
+            duration: 800,
+            easing: 'easeInOutQuart',
+            lazy: true
+        });
+        
+        console.log('Chart updated successfully');
+    } catch (error) {
+        console.error('Error updating chart:', error);
+    }
 }
 
 // Update the energy chart (fallback)
 function updateChart(hour) {
-    // This is now a fallback and will only be used if WebSocket is not available
+    if (!energyChart) return;
+    
     const data = energyChart.data.datasets[0].data;
     
     // Calculate total current usage from all devices
@@ -525,8 +699,8 @@ function updateChart(hour) {
         .filter(device => device.isOn)
         .reduce((sum, device) => sum + (device.power / 1000), 0);
     
-    // Add new data point (scaled to kWh)
-    data[hour] = totalCurrentUsage > 0 ? totalCurrentUsage * 0.2 : 0;
+    // Update the current hour's data point with actual usage
+    data[hour] = totalCurrentUsage;
     
     // Shift data if we've gone past 24 hours
     if (hour === 0) {
@@ -534,67 +708,44 @@ function updateChart(hour) {
         data.push(0);
     }
     
-    energyChart.update();
-}
-
-// Update the dashboard with data from server
-function updateDashboardWithData(data) {
-    // Update UI with new data
-    currentUsageEl.textContent = `${data.current_power.toFixed(2)} kW`;
-    dailyConsumptionEl.textContent = `${data.daily_consumption.toFixed(2)} kWh`;
-    dailyConsumptionEl.setAttribute('data-value', data.daily_consumption);
-    costEstimateEl.textContent = `$${data.daily_cost.toFixed(2)}`;
-    
-    // Update device usage displays
-    data.devices.forEach(deviceData => {
-        const usageEl = document.getElementById(`device-${deviceData.id}-usage`);
-        if (usageEl) {
-            usageEl.textContent = `${deviceData.usage.toFixed(2)} kWh`;
-        }
-        
-        const powerEl = document.getElementById(`device-${deviceData.id}-power`);
-        if (powerEl) {
-            powerEl.textContent = `${deviceData.current_power.toFixed(2)} kW`;
-            
-            // Highlight high power usage
-            if (deviceData.current_power > 1) { // More than 1kW
-                powerEl.classList.add('text-warning');
-            } else {
-                powerEl.classList.remove('text-warning');
-            }
-        }
+    // Update the chart with smooth animation
+    energyChart.update({
+        duration: 800,
+        easing: 'easeInOutQuart'
     });
-    
-    // Highlight high usage
-    if (data.current_power > 3) { // Threshold of 3kW
-        currentUsageEl.classList.add('text-danger');
-        if (Math.random() < 0.1) { // 10% chance to trigger alert each update when over threshold
-            addAlert(`High power usage detected: ${data.current_power.toFixed(2)}kW`, 'warning');
-        }
-    } else {
-        currentUsageEl.classList.remove('text-danger');
-    }
-    
-    // Update the dashboard (for any non-WebSocket updates)
-    updateDashboard();
 }
 
-// Update the dashboard with current stats (fallback)
+// Update the dashboard with current stats
 function updateDashboard() {
-    // This is now a fallback and will only be used if WebSocket is not available
-    const currentUsage = devices
-        .filter(device => device.isOn)
-        .reduce((sum, device) => sum + (device.power / 1000), 0);
-    
-    const dailyConsumption = devices.reduce((sum, device) => sum + (device.usage || 0), 0);
-    const costEstimate = dailyConsumption * energyCost;
-    
-    currentUsageEl.textContent = `${currentUsage.toFixed(2)} kW`;
-    dailyConsumptionEl.textContent = `${dailyConsumption.toFixed(2)} kWh`;
-    costEstimateEl.textContent = `$${costEstimate.toFixed(2)}`;
-    
-    const activeAlerts = alerts.filter(alert => !alert.dismissed).length;
-    alertCountEl.textContent = activeAlerts;
+    try {
+        // Calculate current usage in kW (instantaneous power)
+        const currentUsage = devices
+            .filter(device => device.isOn)
+            .reduce((sum, device) => sum + (device.power / 1000), 0);
+        
+        // Calculate total daily consumption in kWh
+        const dailyConsumption = devices.reduce((sum, device) => sum + (device.usage || 0), 0);
+        
+        // Calculate cost based on daily consumption and energy rate
+        const costEstimate = dailyConsumption * energyCost;
+        
+        // Update the UI
+        currentUsageEl.textContent = `${currentUsage.toFixed(2)} kW`;
+        dailyConsumptionEl.textContent = `${dailyConsumption.toFixed(2)} kWh`;
+        costEstimateEl.textContent = `$${costEstimate.toFixed(2)}`;
+        
+        // Update alerts count
+        const activeAlerts = alerts.filter(alert => !alert.dismissed).length;
+        alertCountEl.textContent = activeAlerts;
+        
+        // Save the updated data (throttle this to avoid too frequent saves)
+        if (Date.now() - lastSaveTime > 5000) { // Save at most every 5 seconds
+            saveData();
+            lastSaveTime = Date.now();
+        }
+    } catch (error) {
+        console.error('Error updating dashboard:', error);
+    }
 }
 
 // Add a new alert
